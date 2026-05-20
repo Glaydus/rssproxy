@@ -48,19 +48,34 @@ install:
 
 	# 2. Install binary
 	@mkdir -p $(DESTDIR)$(PREFIX)/bin
+	@if [ -n "$$SUDO_UID" ] && [ -n "$$SUDO_GID" ]; then \
+		chown $$SUDO_UID:$$SUDO_GID $(DESTDIR)$(PREFIX)/bin; \
+	fi
 	@cp bin/$(PROG) $(DESTDIR)$(PREFIX)/bin/$(PROG)
 	@chmod 755 $(DESTDIR)$(PREFIX)/bin/$(PROG)
+	@if [ -n "$$SUDO_UID" ] && [ -n "$$SUDO_GID" ]; then \
+		chown $$SUDO_UID:$$SUDO_GID $(DESTDIR)$(PREFIX)/bin/$(PROG); \
+	fi
 	@echo "Installed binary to $(PREFIX)/bin/$(PROG)"
 
 	# 3. Install global configuration file
 	@mkdir -p $(DESTDIR)$(CONF_DIR)
+	@if [ -n "$$SUDO_UID" ] && [ -n "$$SUDO_GID" ]; then \
+		chown $$SUDO_UID:$$SUDO_GID $(DESTDIR)$(CONF_DIR); \
+	fi
 	@if [ ! -f $(DESTDIR)$(CONF_DIR)/rssproxy.conf ]; then \
 		cp bin/rssproxy.conf $(DESTDIR)$(CONF_DIR)/rssproxy.conf; \
 		chmod 644 $(DESTDIR)$(CONF_DIR)/rssproxy.conf; \
+		if [ -n "$$SUDO_UID" ] && [ -n "$$SUDO_GID" ]; then \
+			chown $$SUDO_UID:$$SUDO_GID $(DESTDIR)$(CONF_DIR)/rssproxy.conf; \
+		fi; \
 		echo "Installed configuration to $(CONF_DIR)/rssproxy.conf"; \
 	else \
 		cp bin/rssproxy.conf $(DESTDIR)$(CONF_DIR)/rssproxy.conf.new; \
 		chmod 644 $(DESTDIR)$(CONF_DIR)/rssproxy.conf.new; \
+		if [ -n "$$SUDO_UID" ] && [ -n "$$SUDO_GID" ]; then \
+			chown $$SUDO_UID:$$SUDO_GID $(DESTDIR)$(CONF_DIR)/rssproxy.conf.new; \
+		fi; \
 		echo "Warning: $(CONF_DIR)/rssproxy.conf already exists."; \
 		echo "         New default configuration installed as rssproxy.conf.new"; \
 	fi
