@@ -94,7 +94,7 @@ The `<path>` becomes the local URL path served by the proxy. With the example ab
 
 ### blacklist.ip
 
-Optional file in the working directory. One entry per line — plain IPv4 address or CIDR notation:
+Optional file. One entry per line — plain IPv4 address or CIDR notation:
 
 ```
 # Lines starting with '#' are ignored
@@ -102,7 +102,13 @@ Optional file in the working directory. One entry per line — plain IPv4 addres
 10.0.0.0/8
 ```
 
-The file is read at startup. Entries added at runtime (auto-blacklisting) are appended to this file automatically.
+The file is located using the same search strategy as `rssproxy.conf`:
+
+1. Directory of the executable
+2. Compile-time `CONF_DIR` (e.g. `/usr/local/etc/rssproxy`)
+3. Current working directory (fallback)
+
+The file is read at startup. Entries added at runtime (auto-blacklisting) are appended to whichever path was resolved.
 
 ### Port
 
@@ -130,6 +136,23 @@ make deploy
 
 > **Note:** `make deploy` only reloads and restarts the service — it does not enable it.
 > To have the service start automatically on boot, run `sudo systemctl enable rssproxy` separately.
+
+To verify the service is running:
+
+```sh
+sudo systemctl status rssproxy
+```
+
+```
+● rssproxy.service - RSS Proxy Service
+     Loaded: loaded (/usr/lib/systemd/system/rssproxy.service; enabled)
+     Active: active (running) since ...; 5min ago
+    Main PID: 1234 (rssproxy)
+       Tasks: 2
+      Memory: 1.7M
+      CGroup: /system.slice/rssproxy.service
+              └─1234 /usr/local/bin/rssproxy
+```
 
 ## Development build
 
