@@ -27,11 +27,11 @@ typedef struct {
   char *buf;
   size_t len;
   size_t cap;
-  char etag[256];        // ETag received from upstream
   const char *prev_etag; // ETag from previous request (pointer into src->etag)
   int etag_unchanged;    // set when upstream ETag matches prev_etag
+  char etag[88];         // ETag received from upstream
 } response_t;
-
+_Static_assert(sizeof(response_t) == 128, "response_t size must be 128 bytes to fit in cache line");
 
 //  Curl header callback — extract ETag and check if ETag has not changed
 static size_t curl_header_cb(char *buffer, size_t size, size_t nitems,
@@ -106,7 +106,7 @@ static int fetch_upstream(rss_source_t *src, response_t *resp,
   headers = curl_slist_append(headers, "Cache-Control: no-cache");
 
   if (src->etag[0] != '\0') {
-    char etag_hdr[320];
+    char etag_hdr[16 + sizeof(src->etag)];
     snprintf(etag_hdr, sizeof(etag_hdr), "If-None-Match: %s", src->etag);
     headers = curl_slist_append(headers, etag_hdr);
   }
