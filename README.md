@@ -128,6 +128,9 @@ Or use the `deploy` make target to reload and restart in one step:
 make deploy
 ```
 
+> **Note:** `make deploy` only reloads and restarts the service — it does not enable it.
+> To have the service start automatically on boot, run `sudo systemctl enable rssproxy` separately.
+
 ## Development build
 
 ```sh
