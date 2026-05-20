@@ -11,7 +11,7 @@ SYSCONFDIR ?= $(PREFIX)/etc
 CONF_DIR   ?= $(SYSCONFDIR)/rssproxy
 SYSTEMD_UNIT_DIR ?= /usr/lib/systemd/system
 
-WARNINGS = -Wall -Wextra -Wpedantic
+WARNINGS = -Wall -Wextra -Wpedantic -std=c11
 
 CFLAGS       += $(WARNINGS) -O2 -s -DNDEBUG -DCONF_DIR='"$(CONF_DIR)"' $(PKG_CFLAGS)
 CFLAGS_DEBUG += $(WARNINGS) -O0 -g -DDEBUG  -DCONF_DIR='"$(CONF_DIR)"' $(PKG_CFLAGS)
