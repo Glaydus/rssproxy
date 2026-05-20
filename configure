@@ -1,0 +1,86 @@
+#!/bin/sh
+
+PREFIX="/usr/local"
+SYSCONFDIR=""
+
+usage() {
+    echo "Usage: ./configure [OPTION]..."
+    echo ""
+    echo "Options:"
+    echo "  --prefix=DIR      Install files in DIR [$PREFIX]"
+    echo "  --sysconfdir=DIR  Install configuration files in DIR [PREFIX/etc]"
+    echo "  -h, --help        Display this help and exit"
+    exit 0
+}
+
+for arg in "$@"; do
+    case $arg in
+        --prefix=*) PREFIX="${arg#*=}" ;;
+        --sysconfdir=*) SYSCONFDIR="${arg#*=}" ;;
+        -h|--help) usage ;;
+        *) echo "Unknown option: $arg"; usage; exit 1 ;;
+    esac
+done
+
+if [ -z "$SYSCONFDIR" ]; then
+    if [ "$PREFIX" = "/usr" ]; then
+        SYSCONFDIR="/etc"
+    else
+        SYSCONFDIR="$PREFIX/etc"
+    fi
+fi
+
+echo "Configuring rssproxy..."
+echo "  PREFIX:     $PREFIX"
+echo "  SYSCONFDIR: $SYSCONFDIR"
+
+echo "Checking for required development libraries..."
+MISSING=""
+for lib in libcurl libmicrohttpd; do
+    printf "  %-20s" "$lib"
+    if pkg-config --exists "$lib"; then
+        echo "found"
+    else
+        echo "MISSING"
+        MISSING="$MISSING $lib"
+    fi
+done
+
+if [ -n "$MISSING" ]; then
+    echo ""
+    echo "Error: the following required libraries were not found:$MISSING"
+    exit 1
+fi
+
+PKG_CFLAGS=$(pkg-config --cflags libcurl libmicrohttpd)
+PKG_LIBS=$(pkg-config --libs libcurl libmicrohttpd)
+
+cat << EOF > config.mk
+# Generated automatically by ./configure — do not edit.
+PREFIX       ?= $PREFIX
+SYSCONFDIR   ?= $SYSCONFDIR
+PKG_CFLAGS   := $PKG_CFLAGS
+PKG_LIBS     := $PKG_LIBS
+EOF
+
+echo "Generate unit for systemd..."
+cat << EOF > rssproxy.service
+[Unit]
+Description=RSS Proxy Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=$PREFIX/bin/rssproxy
+WorkingDirectory=$SYSCONFDIR/rssproxy
+ReadWritePaths=$SYSCONFDIR/rssproxy
+Restart=on-failure
+# User=nobody
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+echo ""
+echo ""
+echo "Configuration complete. Run 'make' to build."
