@@ -14,7 +14,7 @@ A lightweight HTTP proxy for RSS/Atom feeds, written in C. It sits between RSS c
 
 ## Requirements
 
-- C99 compiler (GCC or Clang)
+- C11 compiler with GNU extensions (GCC >= 4.9 or Clang >= 3.1)
 - [libcurl](https://curl.se/libcurl/) with HTTP/2 support
 - [libmicrohttpd](https://www.gnu.org/software/libmicrohttpd/)
 - `pkg-config`
