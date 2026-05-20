@@ -8,8 +8,8 @@
 
 // Single RSS source entry
 typedef struct {
-  char name[128];            // HTTP path, e.g. "/tvn24"
-  char uri[512];             // upstream URL
+  char name[64];             // HTTP path, e.g. "/tvn24"
+  char uri[384];             // upstream URL
   char etag[SOURCE_ETAG_MAX];
 } rss_source_t;
 

@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <sys/param.h>
 #include <sys/socket.h>
 #include <microhttpd.h>
 #include <curl/curl.h>
@@ -29,9 +30,11 @@ typedef struct {
   size_t cap;
   const char *prev_etag; // ETag from previous request (pointer into src->etag)
   int etag_unchanged;    // set when upstream ETag matches prev_etag
-  char etag[88];         // ETag received from upstream
+  char etag[88];         // ETag received from upstream (sized to pad response_t to 128 bytes)
 } response_t;
 _Static_assert(sizeof(response_t) == 128, "response_t size must be 128 bytes to fit in cache line");
+
+#define ETAG_MAX (sizeof(((response_t *)0)->etag) - 1)
 
 //  Curl header callback — extract ETag and check if ETag has not changed
 static size_t curl_header_cb(char *buffer, size_t size, size_t nitems,
@@ -48,8 +51,7 @@ static size_t curl_header_cb(char *buffer, size_t size, size_t nitems,
     while (vlen > 0 && (val[vlen - 1] == '\r' || val[vlen - 1] == '\n'))
       vlen--;
 
-    if (vlen >= sizeof(resp->etag))
-      vlen = sizeof(resp->etag) - 1;
+    vlen = MIN(vlen, ETAG_MAX);
     memcpy(resp->etag, val, vlen);
     resp->etag[vlen] = '\0';
 
@@ -264,9 +266,7 @@ static MHD_Result request_handler(void *cls, struct MHD_Connection *conn,
 
   // Update ETag if present and content actually changed
   if (resp_data.etag[0] != '\0') {
-    size_t len = strlen(resp_data.etag);
-    if (len >= sizeof(src->etag))
-      len = sizeof(src->etag) - 1;
+    size_t len = MIN(strlen(resp_data.etag), sizeof(src->etag) - 1);
     memcpy(src->etag, resp_data.etag, len);
     src->etag[len] = '\0';
   }
