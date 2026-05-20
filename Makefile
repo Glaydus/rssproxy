@@ -51,8 +51,7 @@ install:
 	@if [ -n "$$SUDO_UID" ] && [ -n "$$SUDO_GID" ]; then \
 		chown $$SUDO_UID:$$SUDO_GID $(DESTDIR)$(PREFIX)/bin; \
 	fi
-	@cp bin/$(PROG) $(DESTDIR)$(PREFIX)/bin/$(PROG)
-	@chmod 755 $(DESTDIR)$(PREFIX)/bin/$(PROG)
+	@install -m 755 bin/$(PROG) $(DESTDIR)$(PREFIX)/bin/$(PROG)
 	@if [ -n "$$SUDO_UID" ] && [ -n "$$SUDO_GID" ]; then \
 		chown $$SUDO_UID:$$SUDO_GID $(DESTDIR)$(PREFIX)/bin/$(PROG); \
 	fi
@@ -70,14 +69,16 @@ install:
 			chown $$SUDO_UID:$$SUDO_GID $(DESTDIR)$(CONF_DIR)/rssproxy.conf; \
 		fi; \
 		echo "Installed configuration to $(CONF_DIR)/rssproxy.conf"; \
-	else \
+	elif ! diff -q bin/rssproxy.conf $(DESTDIR)$(CONF_DIR)/rssproxy.conf > /dev/null 2>&1; then \
 		cp bin/rssproxy.conf $(DESTDIR)$(CONF_DIR)/rssproxy.conf.new; \
 		chmod 644 $(DESTDIR)$(CONF_DIR)/rssproxy.conf.new; \
 		if [ -n "$$SUDO_UID" ] && [ -n "$$SUDO_GID" ]; then \
 			chown $$SUDO_UID:$$SUDO_GID $(DESTDIR)$(CONF_DIR)/rssproxy.conf.new; \
 		fi; \
-		echo "Warning: $(CONF_DIR)/rssproxy.conf already exists."; \
+		echo "Warning: $(CONF_DIR)/rssproxy.conf already exists and differs from the new default."; \
 		echo "         New default configuration installed as rssproxy.conf.new"; \
+	else \
+		echo "Configuration $(CONF_DIR)/rssproxy.conf is up to date, skipping."; \
 	fi
 
 	# 4. Install rssproxy.service
