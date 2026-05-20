@@ -208,6 +208,7 @@ static MHD_Result request_handler(void *cls, struct MHD_Connection *conn,
           MHD_HTTP_FORBIDDEN, NULL);
     }
 
+    // Block path traversal attempts
     if (strstr(url, "..") != NULL) {
       fprintf(stdout, "Auto-blacklisting %s for path traversal attempt: %s\n", remote, url);
       fflush(stdout);
@@ -285,12 +286,6 @@ static void signal_handler(int sig) { s_signo = sig; }
 int main(int argc, char *argv[]) {
   (void) argc; (void) argv;
 
-  const char *port_str = getenv("PORT");
-  int port = port_str ? atoi(port_str) : 8889;
-
-  signal(SIGINT, signal_handler);
-  signal(SIGTERM, signal_handler);
-
   // Load RSS sources — exit if none found
   if (sources_load() == 0) {
     fprintf(stderr, "No RSS sources configured, exiting\n");
@@ -302,6 +297,15 @@ int main(int argc, char *argv[]) {
 
   // Initialize curl
   curl_global_init(CURL_GLOBAL_DEFAULT);
+
+
+  // Set port from environment variable or default to 8889
+  const char *port_str = getenv("PORT");
+  int port = port_str ? atoi(port_str) : 8889;
+
+  // Catch SIGINT and SIGTERM to stop the server gracefully
+  signal(SIGINT, signal_handler);
+  signal(SIGTERM, signal_handler);
 
   // Start microhttpd server
   struct MHD_Daemon *daemon =
