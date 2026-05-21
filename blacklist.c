@@ -31,7 +31,7 @@ typedef struct {
 static blacklist_entry_t s_blacklist[BLACKLIST_MAX];
 static int               s_blacklist_count = 0;
 static pthread_mutex_t   s_mutex = PTHREAD_MUTEX_INITIALIZER;
-static char              s_blacklist_path[4096];  // resolved at load time
+static char              s_blacklist_path[1024];  // resolved at load time
 
 // Resolve the path to blacklist.ip using the same strategy as rssproxy.conf:
 //   1. <dir of executable>/blacklist.ip
@@ -85,11 +85,14 @@ static void resolve_blacklist_path(void) {
   snprintf(s_blacklist_path, sizeof(s_blacklist_path), "./%s", BLACKLIST_FILENAME);
 }
 
+// Returns the number of entries in the blacklist
 int blacklist_count(void) {
   DEFER_MUTEX(s_mutex);
   return s_blacklist_count;
 }
 
+// Loads the blacklist from BLACKLIST_FILE into s_blacklist.
+// Returns the number of entries loaded, or -1 on error.
 int blacklist_load(void) {
   resolve_blacklist_path();
 
@@ -152,19 +155,22 @@ int blacklist_load(void) {
 
     s_blacklist[count].addr = a.s_addr & mask;
     s_blacklist[count].mask = mask;
+    count++;
+
 #ifdef DEBUG
-    fprintf(stdout, "blacklist: added %s/%d => addr: 0x%08x, mask: 0x%08x\n", subnet, prefix, s_blacklist[count].addr, mask);
+    fprintf(stdout, "blacklist: added %s/%d => addr: 0x%08x, mask: 0x%08x\n", subnet, prefix, s_blacklist[count - 1].addr, mask);
     fflush(stdout);
 #endif
-    count++;
   }
 
   fclose(f);
   s_blacklist_count = count;
+
 #ifdef DEBUG
   fprintf(stdout, "blacklist: loaded %d entries from %s\n", count, s_blacklist_path);
   fflush(stdout);
 #endif
+
   return count;
 }
 

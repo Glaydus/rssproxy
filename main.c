@@ -21,8 +21,6 @@ typedef enum MHD_Result MHD_Result;
 
 #define UPSTREAM_TIMEOUT_SEC 15L
 
-static int s_signo = 0;
-
 // Response buffer structure for curl
 typedef struct {
   char *buf;
@@ -280,9 +278,13 @@ static MHD_Result request_handler(void *cls, struct MHD_Connection *conn,
   return reply(conn, resp, MHD_HTTP_OK, NULL);
 }
 
+static int s_signo = 0;
+
 // Signal handler to stop the server gracefully
 static void signal_handler(int sig) { s_signo = sig; }
 
+
+// Main function — load sources and blacklist, start server, and wait for termination signal
 int main(int argc, char *argv[]) {
   (void) argc; (void) argv;
 
@@ -297,7 +299,6 @@ int main(int argc, char *argv[]) {
 
   // Initialize curl
   curl_global_init(CURL_GLOBAL_DEFAULT);
-
 
   // Set port from environment variable or default to 8889
   const char *port_str = getenv("PORT");

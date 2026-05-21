@@ -8,10 +8,11 @@
 
 // Single RSS source entry
 typedef struct {
-  char name[64];             // HTTP path, e.g. "/tvn24"
-  char uri[384];             // upstream URL
+  char name[32];              // HTTP path, e.g. "/feed1"
   char etag[SOURCE_ETAG_MAX];
+  char uri[160];              // upstream URL (sized to pad rss_source_t to 256 bytes)
 } rss_source_t;
+_Static_assert(sizeof(rss_source_t) == 256, "rss_source_t size must be multiple of 64 bytes");
 
 // Container — dynamically allocated entries array + count in one place.
 typedef struct {
