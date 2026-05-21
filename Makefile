@@ -13,7 +13,7 @@ SYSTEMD_UNIT_DIR ?= /usr/lib/systemd/system
 
 WARNINGS = -Wall -Wextra -Wpedantic -std=gnu11
 
-CFLAGS       += $(WARNINGS) -O2 -s -DNDEBUG -DCONF_DIR='"$(CONF_DIR)"' $(PKG_CFLAGS)
+CFLAGS       += $(WARNINGS) -O2 -s -DNDEBUG -DCONF_DIR='"$(CONF_DIR)"' $(PKG_CFLAGS) $(if $(DEBUG),-DDEBUG)
 CFLAGS_DEBUG += $(WARNINGS) -O0 -g -DDEBUG  -DCONF_DIR='"$(CONF_DIR)"' $(PKG_CFLAGS)
 
 LIBS = $(if $(PKG_LIBS),$(PKG_LIBS),-lcurl -lmicrohttpd) -lpthread
