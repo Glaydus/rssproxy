@@ -14,6 +14,8 @@ typedef struct {
 } rss_source_t;
 _Static_assert(sizeof(rss_source_t) == 256, "rss_source_t size must be multiple of 64 bytes");
 
+#define SOURCE_URI_MAX (sizeof(((rss_source_t *)0)->uri) - 1)
+
 // Container — dynamically allocated entries array + count in one place.
 typedef struct {
   rss_source_t *entries;

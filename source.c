@@ -110,6 +110,12 @@ int sources_load(void) {
       continue;
     }
 
+    if (strlen(uri) > SOURCE_URI_MAX) {
+      fprintf(stderr, "sources: skipping entry '%s': URI too long (max %zu chars)\n",
+              start, SOURCE_URI_MAX);
+      continue;
+    }
+
     rss_source_t *tmp = realloc(entries, (count + 1) * sizeof(rss_source_t));
     if (!tmp) {
       fprintf(stderr, "sources: out of memory\n");
@@ -120,12 +126,19 @@ int sources_load(void) {
     rss_source_t *e = &entries[count];
     memset(e, 0, sizeof(*e));
 
+    int too_long = 0;
     size_t nlen = (size_t)(sep - start);
-    if (nlen >= sizeof(e->name)) nlen = sizeof(e->name) - 1;
+    if (nlen >= sizeof(e->name)) {
+      nlen = sizeof(e->name) - 1;
+      too_long = 1;
+    }
     memcpy(e->name, start, nlen);
+    if (too_long) {
+      fprintf(stderr, "sources: name too long, truncated to: %s\n", e->name);
+    }
 
+    // we already checked that uri length is within SOURCE_URI_MAX, which is sizeof(e->uri) - 1, so no need to check again here
     size_t ulen = strlen(uri);
-    if (ulen >= sizeof(e->uri)) ulen = sizeof(e->uri) - 1;
     memcpy(e->uri, uri, ulen);
 
     count++;

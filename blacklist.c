@@ -39,7 +39,7 @@ static char              s_blacklist_path[1024];  // resolved at load time
 // Falls back to "./blacklist.ip" when neither location is found (file may not
 // exist yet — it will be created on the first auto-blacklist event).
 static void resolve_blacklist_path(void) {
-  char exe[4096];
+  char exe[1024];
   ssize_t n = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
   char *last_slash = NULL;
 
