@@ -63,15 +63,13 @@ install:
 		chown $$SUDO_UID:$$SUDO_GID $(DESTDIR)$(CONF_DIR); \
 	fi
 	@if [ ! -f $(DESTDIR)$(CONF_DIR)/rssproxy.conf ]; then \
-		cp bin/rssproxy.conf $(DESTDIR)$(CONF_DIR)/rssproxy.conf; \
-		chmod 644 $(DESTDIR)$(CONF_DIR)/rssproxy.conf; \
+		install -m 644 bin/rssproxy.conf $(DESTDIR)$(CONF_DIR)/rssproxy.conf; \
 		if [ -n "$$SUDO_UID" ] && [ -n "$$SUDO_GID" ]; then \
 			chown $$SUDO_UID:$$SUDO_GID $(DESTDIR)$(CONF_DIR)/rssproxy.conf; \
 		fi; \
 		echo "Installed configuration to $(CONF_DIR)/rssproxy.conf"; \
 	elif ! diff -q bin/rssproxy.conf $(DESTDIR)$(CONF_DIR)/rssproxy.conf > /dev/null 2>&1; then \
-		cp bin/rssproxy.conf $(DESTDIR)$(CONF_DIR)/rssproxy.conf.new; \
-		chmod 644 $(DESTDIR)$(CONF_DIR)/rssproxy.conf.new; \
+		install -m 644 bin/rssproxy.conf $(DESTDIR)$(CONF_DIR)/rssproxy.conf.new; \
 		if [ -n "$$SUDO_UID" ] && [ -n "$$SUDO_GID" ]; then \
 			chown $$SUDO_UID:$$SUDO_GID $(DESTDIR)$(CONF_DIR)/rssproxy.conf.new; \
 		fi; \
@@ -84,9 +82,16 @@ install:
 	# 4. Install rssproxy.service
 	@if [ -f $(SERVICE) ]; then \
 		mkdir -p $(DESTDIR)$(SYSTEMD_UNIT_DIR); \
-		cp $(SERVICE) $(DESTDIR)$(SYSTEMD_UNIT_DIR)/$(SERVICE); \
-		chmod 644 $(DESTDIR)$(SYSTEMD_UNIT_DIR)/$(SERVICE); \
-		echo "Installed systemd unit to $(SYSTEMD_UNIT_DIR)/$(SERVICE)"; \
+		if [ ! -f $(DESTDIR)$(SYSTEMD_UNIT_DIR)/$(SERVICE) ]; then \
+			install -m 644 $(SERVICE) $(DESTDIR)$(SYSTEMD_UNIT_DIR)/$(SERVICE); \
+			echo "Installed systemd unit to $(SYSTEMD_UNIT_DIR)/$(SERVICE)"; \
+		elif ! diff -q $(SERVICE) $(DESTDIR)$(SYSTEMD_UNIT_DIR)/$(SERVICE) > /dev/null 2>&1; then \
+			install -m 644 $(SERVICE) $(DESTDIR)$(SYSTEMD_UNIT_DIR)/$(SERVICE).new; \
+			echo "Warning: $(SYSTEMD_UNIT_DIR)/$(SERVICE) already exists and differs from the new default."; \
+			echo "         New default unit installed as $(SERVICE).new"; \
+		else \
+			echo "Systemd unit $(SYSTEMD_UNIT_DIR)/$(SERVICE) is up to date, skipping."; \
+		fi \
 	fi
 
 clean:
