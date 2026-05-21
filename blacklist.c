@@ -152,12 +152,11 @@ int blacklist_load(void) {
 
     s_blacklist[count].addr = a.s_addr & mask;
     s_blacklist[count].mask = mask;
-    count++;
-
 #ifdef DEBUG
     fprintf(stdout, "blacklist: added %s/%d => addr: 0x%08x, mask: 0x%08x\n", subnet, prefix, s_blacklist[count].addr, mask);
     fflush(stdout);
 #endif
+    count++;
   }
 
   fclose(f);
