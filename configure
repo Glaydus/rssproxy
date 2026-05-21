@@ -63,7 +63,22 @@ PKG_CFLAGS   := $PKG_CFLAGS
 PKG_LIBS     := $PKG_LIBS
 EOF
 
-echo "Generate unit for systemd..."
+echo "Generate rssproxy.service (unit for systemd)..."
+
+# Determine User= directive based on SYSCONFDIR location
+SERVICE_USER=""
+case "$SYSCONFDIR" in
+    /home/*|/root/*)
+        SERVICE_USER=$(id -un)
+        ;;
+esac
+
+if [ -n "$SERVICE_USER" ]; then
+    USER_LINE="User=$SERVICE_USER"
+else
+    USER_LINE="# User=nobody"
+fi
+
 cat << EOF > rssproxy.service
 [Unit]
 Description=RSS Proxy Service
@@ -75,7 +90,7 @@ ExecStart=$PREFIX/bin/rssproxy
 WorkingDirectory=$SYSCONFDIR/rssproxy
 ReadWritePaths=$SYSCONFDIR/rssproxy
 Restart=on-failure
-# User=nobody
+$USER_LINE
 
 [Install]
 WantedBy=multi-user.target
