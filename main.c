@@ -130,7 +130,7 @@ static int fetch_upstream(rss_source_t *src, response_t *resp,
   if (res == CURLE_OK ||
       (res == CURLE_WRITE_ERROR && resp->etag_unchanged)) {
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
-    *out_status = status;
+    *out_status = resp->etag_unchanged ? 304 : status;
   } else {
     *out_status = 0;
   }
@@ -138,7 +138,7 @@ static int fetch_upstream(rss_source_t *src, response_t *resp,
   curl_slist_free_all(headers);
   curl_easy_cleanup(curl);
 
-  return (res == CURLE_OK || (res == CURLE_WRITE_ERROR && resp->etag_unchanged)) ? 0 : -1;
+  return *out_status ? 0 : -1;
 }
 
 // Find RSS source by path
@@ -253,13 +253,6 @@ static MHD_Result request_handler(void *cls, struct MHD_Connection *conn,
     return reply(conn,
         MHD_create_response_from_buffer(strlen(msg), (void *)msg, MHD_RESPMEM_MUST_COPY),
         status, &resp_data);
-  }
-
-  // Upstream returned 200 but ETag is unchanged — treat as 304
-  if (resp_data.etag_unchanged) {
-    return reply(conn,
-        MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_PERSISTENT),
-        MHD_HTTP_NOT_MODIFIED, &resp_data);
   }
 
   // Update ETag if present and content actually changed
