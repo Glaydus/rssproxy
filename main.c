@@ -21,19 +21,6 @@ typedef enum MHD_Result MHD_Result;
 
 #define UPSTREAM_TIMEOUT_SEC 15L
 
-// Response buffer structure for curl
-typedef struct {
-  char *buf;
-  size_t len;
-  size_t cap;
-  const char *prev_etag; // ETag from previous request (pointer into src->etag)
-  int etag_unchanged;    // set when upstream ETag matches prev_etag
-  char etag[88];         // ETag received from upstream (sized to pad response_t to 128 bytes)
-} response_t;
-_Static_assert(sizeof(response_t) == 128, "response_t size must be 128 bytes to fit in cache line");
-
-#define ETAG_MAX (sizeof(((response_t *)0)->etag) - 1)
-
 //  Curl header callback — extract ETag and check if ETag has not changed
 static size_t curl_header_cb(char *buffer, size_t size, size_t nitems,
                              void *userdata) {
@@ -49,16 +36,9 @@ static size_t curl_header_cb(char *buffer, size_t size, size_t nitems,
     while (vlen > 0 && (val[vlen - 1] == '\r' || val[vlen - 1] == '\n'))
       vlen--;
 
-    vlen = MIN(vlen, ETAG_MAX);
+    vlen = MIN(vlen, ETAG_MAX - 1);
     memcpy(resp->etag, val, vlen);
     resp->etag[vlen] = '\0';
-
-    // If upstream ignores If-None-Match and returns 200 with the same ETag,
-    // mark as unchanged so we can skip downloading the body entirely.
-    if (resp->prev_etag != NULL && resp->prev_etag[0] != '\0' &&
-        strcmp(resp->etag, resp->prev_etag) == 0) {
-      resp->etag_unchanged = 1;
-    }
   }
   return len;
 }
@@ -69,8 +49,9 @@ static size_t curl_write_cb(void *ptr, size_t size, size_t nmemb,
   response_t *resp = (response_t *)userdata;
   size_t n = size * nmemb;
 
-  // ETag matched — abort body download, we'll return 304 to the client
-  if (resp->etag_unchanged)
+  // ETag matched — upstream returned 200 with the same ETag (ignored If-None-Match),
+  // abort body download to avoid unnecessary transfer; fetch_upstream will treat this as 304.
+  if (resp->prev_etag[0] != '\0' && strcmp(resp->etag, resp->prev_etag) == 0)
     return 0;
 
   // Reallocate buffer if needed
@@ -98,7 +79,7 @@ static int fetch_upstream(rss_source_t *src, response_t *resp,
     return -1;
 
   // Pass previous ETag so header callback can detect unchanged content
-  resp->prev_etag = src->etag[0] != '\0' ? src->etag : NULL;
+  resp->prev_etag = src->etag;
 
   struct curl_slist *headers = NULL;
   headers = curl_slist_append(headers, "Accept: application/xml, text/xml, */*");
@@ -127,10 +108,11 @@ static int fetch_upstream(rss_source_t *src, response_t *resp,
   CURLcode result = curl_easy_perform(curl);
   long status = 0;
 
-  if (result == CURLE_OK ||
-      (result == CURLE_WRITE_ERROR && resp->etag_unchanged)) {
+  int same_etag = resp->etag[0] != '\0' && strcmp(resp->etag, resp->prev_etag) == 0;
+
+  if (result == CURLE_OK || (result == CURLE_WRITE_ERROR && same_etag)) {
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
-    *out_status = resp->etag_unchanged ? 304 : status;
+    *out_status = same_etag ? 304 : status;
   } else {
     *out_status = 0;
   }

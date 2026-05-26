@@ -110,9 +110,9 @@ int sources_load(void) {
       continue;
     }
 
-    if (strlen(uri) > SOURCE_URI_MAX) {
+    if (strlen(uri) > SOURCE_URI_LEN) {
       fprintf(stderr, "sources: skipping entry '%s': URI too long (max %zu chars)\n",
-              start, SOURCE_URI_MAX);
+              start, SOURCE_URI_LEN);
       continue;
     }
 
