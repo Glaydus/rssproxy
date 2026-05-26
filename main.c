@@ -124,11 +124,11 @@ static int fetch_upstream(rss_source_t *src, response_t *resp,
   curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2TLS);
   curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
 
-  CURLcode res = curl_easy_perform(curl);
+  CURLcode result = curl_easy_perform(curl);
   long status = 0;
 
-  if (res == CURLE_OK ||
-      (res == CURLE_WRITE_ERROR && resp->etag_unchanged)) {
+  if (result == CURLE_OK ||
+      (result == CURLE_WRITE_ERROR && resp->etag_unchanged)) {
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
     *out_status = resp->etag_unchanged ? 304 : status;
   } else {
@@ -169,13 +169,13 @@ static void get_remote_ip(struct MHD_Connection *conn, char *buf, size_t len) {
 
 // Queue response, destroy it, and return the result
 static MHD_Result reply(struct MHD_Connection *conn,
-                        struct MHD_Response *resp,
-                        unsigned int status, response_t *resp_data) {
-  if (resp_data)
-    free(resp_data->buf);
+                        struct MHD_Response *response,
+                        unsigned int status, response_t *resp) {
+  if (resp)
+    free(resp->buf);
 
-  MHD_Result ret = MHD_queue_response(conn, status, resp);
-  MHD_destroy_response(resp);
+  MHD_Result ret = MHD_queue_response(conn, status, response);
+  MHD_destroy_response(response);
   return ret;
 }
 
@@ -230,13 +230,13 @@ static MHD_Result request_handler(void *cls, struct MHD_Connection *conn,
   }
 
   // Fetch from upstream
-  response_t resp_data = {0};
+  response_t resp = {0};
   long status = 0;
 
-  if (fetch_upstream(src, &resp_data, &status) != 0) {
+  if (fetch_upstream(src, &resp, &status) != 0) {
     return reply(conn,
         MHD_create_response_from_buffer(30, (void *)"Error connecting to upstream\n", MHD_RESPMEM_PERSISTENT),
-        MHD_HTTP_BAD_GATEWAY, &resp_data);
+        MHD_HTTP_BAD_GATEWAY, &resp);
   }
 
   // Handle different status codes
@@ -244,7 +244,7 @@ static MHD_Result request_handler(void *cls, struct MHD_Connection *conn,
   if (status == 304) {
     return reply(conn,
         MHD_create_response_from_buffer(0, NULL, MHD_RESPMEM_PERSISTENT),
-        MHD_HTTP_NOT_MODIFIED, &resp_data);
+        MHD_HTTP_NOT_MODIFIED, &resp);
   }
 
   if (status != 200) {
@@ -252,23 +252,23 @@ static MHD_Result request_handler(void *cls, struct MHD_Connection *conn,
     snprintf(msg, sizeof(msg), "%s returned status: %ld\n", src->name + 1, status);
     return reply(conn,
         MHD_create_response_from_buffer(strlen(msg), (void *)msg, MHD_RESPMEM_MUST_COPY),
-        status, &resp_data);
+        status, &resp);
   }
 
   // Update ETag if present and content actually changed
-  if (resp_data.etag[0] != '\0') {
-    size_t len = MIN(strlen(resp_data.etag), sizeof(src->etag) - 1);
-    memcpy(src->etag, resp_data.etag, len);
+  if (resp.etag[0] != '\0') {
+    size_t len = MIN(strlen(resp.etag), sizeof(src->etag) - 1);
+    memcpy(src->etag, resp.etag, len);
     src->etag[len] = '\0';
   }
 
   // Return successful response with XML content
-  struct MHD_Response *resp =
-      MHD_create_response_from_buffer(resp_data.len, resp_data.buf, MHD_RESPMEM_MUST_FREE);
-  MHD_add_response_header(resp, MHD_HTTP_HEADER_CONTENT_TYPE, "application/xml");
+  struct MHD_Response *response =
+      MHD_create_response_from_buffer(resp.len, resp.buf, MHD_RESPMEM_MUST_FREE);
+  MHD_add_response_header(response, MHD_HTTP_HEADER_CONTENT_TYPE, "application/xml");
 
-  // mode MHD_RESPMEM_MUST_FREE, so resp_data as been freed by MHD
-  return reply(conn, resp, MHD_HTTP_OK, NULL);
+  // mode MHD_RESPMEM_MUST_FREE, so resp as been freed by MHD
+  return reply(conn, response, MHD_HTTP_OK, NULL);
 }
 
 static int s_signo = 0;
