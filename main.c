@@ -182,7 +182,7 @@ static MHD_Result request_handler(void *cls, struct MHD_Connection *conn,
     struct sockaddr_in *sin = (struct sockaddr_in *)ci->client_addr;
     inet_ntop(AF_INET, &sin->sin_addr, remote, sizeof(remote));
 
-    if (blacklist_count() > 0 && blacklist_check(sin->sin_addr)) {
+    if (blacklist_check(sin->sin_addr)) {
       fprintf(stdout, "Blocked request: method=%s path=%s remote=%s\n", method, url, remote);
       fflush(stdout);
       return reply(conn,

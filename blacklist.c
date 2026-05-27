@@ -85,12 +85,6 @@ static void resolve_blacklist_path(void) {
   snprintf(s_blacklist_path, sizeof(s_blacklist_path), "./%s", BLACKLIST_FILENAME);
 }
 
-// Returns the number of entries in the blacklist
-int blacklist_count(void) {
-  DEFER_MUTEX(s_mutex);
-  return s_blacklist_count;
-}
-
 // Loads the blacklist from BLACKLIST_FILE into s_blacklist.
 // Returns the number of entries loaded, or -1 on error.
 int blacklist_load(void) {
@@ -176,8 +170,9 @@ int blacklist_load(void) {
 
 // Checks whether the given IP address is on the blocklist
 int blacklist_check(struct in_addr a) {
-  DEFER_MUTEX(s_mutex);
-  for (int i = 0; i < s_blacklist_count; i++) {
+  int count = __atomic_load_n(&s_blacklist_count, __ATOMIC_ACQUIRE);
+
+  for (int i = 0; i < count; i++) {
     if ((a.s_addr & s_blacklist[i].mask) == s_blacklist[i].addr)
       return 1;
   }
@@ -211,7 +206,8 @@ int blacklist_add_ip(struct in_addr a, const char *ip_str) {
         uint32_t mask = 0xFFFFFFFFu;
         s_blacklist[s_blacklist_count].addr = a.s_addr & mask;
         s_blacklist[s_blacklist_count].mask = mask;
-        s_blacklist_count++;
+
+         __atomic_store_n(&s_blacklist_count, s_blacklist_count + 1, __ATOMIC_RELEASE);
       }
     }
   } // <- mutex unlocked here by cleanup

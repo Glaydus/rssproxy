@@ -3,9 +3,6 @@
 
 #include <arpa/inet.h>
 
-// Return the number of entries in the blacklist.
-int blacklist_count(void);
-
 // Load (or reload) the IPv4 blacklist from ./blacklist.ip.
 // Accepts plain addresses and CIDR notation (e.g. 192.168.1.0/24).
 // Returns the number of entries loaded, or -1 if the file cannot be opened.
