@@ -99,19 +99,29 @@ int blacklist_load(void) {
   char line[64];
 
   while (fgets(line, sizeof(line), f) && count < BLACKLIST_MAX) {
+    // Strip comments
+    char *comment = strchr(line, '#');
+    if (comment != NULL) {
+      *comment = '\0';
+    }
+
+    size_t len = strlen(line);
+    if (len  == 0) 
+      continue;
+
     // Strip trailing whitespace / newline
-    char *p = line + strlen(line) - 1;
+    char *p = line + len - 1;
     while (p >= line && (*p == '\n' || *p == '\r' || *p == ' ' || *p == '\t'))
       *p-- = '\0';
-
+    
     // Strip leading whitespace
     char *subnet = line;
     while (*subnet == ' ' || *subnet == '\t') {
       subnet++;
     }
 
-    // Skip empty lines and comments
-    if (*subnet == '\0' || *subnet == '#')
+    // Skip empty lines
+    if (*subnet == '\0')
       continue;
 
     int prefix = 32;
@@ -216,7 +226,7 @@ int blacklist_add_ip(struct in_addr a, const char *ip_str) {
   if (ret == 0) {
     FILE *f = fopen(s_blacklist_path, "a");
     if (f) {
-      fprintf(f, "%s\n", ip_str);
+      fprintf(f, "%s\t# auto blocked\n", ip_str);
       fclose(f);
     }
   }
